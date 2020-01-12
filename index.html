@@ -205,7 +205,7 @@ body {
 							+ " : " + bluewin;
 					GameSet = false;
 					clearInterval(ballmov);
-					document.getElementById("c").style = "visibility: visible";
+					document.getElementById("restart").style = "visibility: visible";
 				} else if (this.x == Field.WIDTH) {
 					alert("빨강 승리");
 					redwin++;
@@ -213,7 +213,7 @@ body {
 					document.getElementById("scoreb").value = " " + redwin
 							+ " : " + bluewin;
 					clearInterval(ballmov);
-					document.getElementById("c").style = "visibility: visible";
+					document.getElementById("restart").style = "visibility: visible";
 				}
 				movingStart();
 			} else {
