@@ -1,0 +1,435 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Document</title>
+<style>
+body {
+
+}
+#contain{
+	min-width:754px;
+}
+#tbrd{
+	margin: 0 auto;
+}
+#gfield {
+	border: 2px solid black;
+	margin: 0 auto;
+}
+
+#scoreb {
+	width: 40px;
+}
+
+#restart {
+	visibility: hidden;
+}
+
+#pause {
+	color: red;
+	font-size: 50px;
+	font-family: cursive;
+	position: absolute;
+	margin-left: 40%;
+    top: 230px;
+	visibility: hidden;
+}
+</style>
+<script>
+	var BallStart = false; //게임 준비를 알림
+	var GameSet = false; //게임 끝났음을 알림
+	var ran1; //공의 x축방향을 결정
+	var ran2; //공의 y축방향을 결정
+	var ballmov; //interval의 변수명
+	var redwin = 0; //승점 카운트
+	var bluewin = 0; //승점 카운트
+	var gamecnt = 0; //게임 판수
+	var gamespeed = 100; //공의 속도
+	var speedreset = gamespeed; //재시작시 속도 저장
+	var realspeed = gamespeed; //실제 공의 속도
+	var powerspeed = realspeed - 25; //특정 타이밍의 공의 속도
+	var ballcolor = "black"; //공 기본색깔
+	var tempheight = 20; //필드의 높이
+	var tempwidth = 40; //필드의 넓이
+	var pause = false; //일시정지
+
+	var Field = { //게임 공간을 생성
+		WIDTH : 40,
+		HEIGHT : 20,
+		DrawReady : function() {
+			return document.getElementById("ftable");
+		},
+		DrawBlock : function(x, y) {
+			this.WIDTH = x;
+			this.HEIGHT = y;
+			var str = "<table id=\"gfield\" cellpadding=\"0\" cellspacing=\"0\">";
+			for (var i = 1; i <= Field.HEIGHT; i++) {
+				str += "<tr>";
+				for (var j = 1; j <= Field.WIDTH; j++) {
+					str += "<td id=\"cell" + i + "_" + j + "\" width='15px' height=15px' bgcolor='white'></td>";
+				}
+				str += "</tr>";
+			}
+			str += "</table>";
+			Field.DrawReady().innerHTML = str;
+		}
+	}
+
+	function Player() { //플레이어 객체의 변수들
+		this.firstX = 0;
+		this.firstY = 0;
+		this.oldX = this.firstX;
+		this.oldY = this.firstY;
+		this.widthCount = 3
+	}
+
+	Player.prototype.setPoint = function(firstX, firstY, color) { //플레이어의 처음 위치설정
+		this.firstX = firstX;
+		this.firstY = firstY;
+		this.color = color;
+		this.oldX = this.firstX;
+		this.oldY = this.firstY;
+	}
+
+	Player.prototype.moveTop = function() { //플레이어 위로 움직임
+		if (this.firstX == 1) {
+			return false;
+		}
+		this.oldX = this.firstX;
+		this.firstX--;
+		this.DrawField();
+	}
+
+	Player.prototype.moveDown = function() { //플레이어 아래로 움직임
+		if (Field.HEIGHT == (this.firstX + this.widthCount)) {
+			return false;
+		}
+		this.oldX = this.firstX;
+		this.firstX++;
+		this.DrawField();
+	}
+
+	Player.prototype.EraseField = function() { //플레이어 움직인 칸을 지움
+		var startLeft = this.oldX;
+		var endLeft = Field.HEIGHT;
+		for (var i = startLeft; i <= endLeft; i++) {
+			var objTemp = document.getElementById("cell" + i + "_" + this.oldY);
+			objTemp.style.backgroundColor = "white";
+		}
+	}
+	Player.prototype.DrawField = function() { //플레이어를 시각화
+		this.EraseField();
+		var startLeft = this.firstX;
+		var endLeft = this.firstX + this.widthCount;
+		for (var i = startLeft; i <= endLeft; i++) {
+			var objTemp = document.getElementById("cell" + i + "_"
+					+ this.firstY);
+			objTemp.style.backgroundColor = this.color;
+		}
+	}
+
+	function Ball() { //공 객체의 변수들
+		this.x = 0;
+		this.y = 0;
+		this.color = ballcolor;
+
+	}
+
+	Ball.prototype.setPoint = function(x, y, color) { //공의 처음위치,색을 변경
+		this.x = x;
+		this.y = y;
+		this.color = color;
+		this.oldX = this.x;
+		this.oldY = this.y;
+	}
+
+	Ball.prototype.setColor = function(color) { //공 색 변경
+		this.color = color;
+	}
+
+	Ball.prototype.EraseField = function() { //공의 변경전 위치를 지움
+		var objTemp = document.getElementById("cell" + this.oldY + "_"
+				+ this.oldX);
+		objTemp.style.backgroundColor = "white";
+	}
+
+	Ball.prototype.DrawField = function() { //공의 시각화
+		var objTemp = document.getElementById("cell" + this.y + "_" + this.x);
+		objTemp.style.backgroundColor = this.color;
+	}
+
+	Ball.prototype.movingStart = function() { //공을 움직이게 하는 요소
+		if (pause == false) {
+			if (GameSet == true) {
+				ball.oldX = ball.x;
+				ball.oldY = ball.y;
+				if (ran1 == 0) {
+					this.x++;
+				} else {
+					this.x--;
+				}
+				if (ran2 == 0) {
+					this.y++;
+				} else {
+					this.y--;
+				}
+
+				if (this.y == 1) {
+					ran2 = 0;
+				} else if (this.y == (Field.HEIGHT)) {
+					ran2 = 1;
+				}
+				if (this.x == (RedPlayer.firstY + 1)
+						&& this.y <= (RedPlayer.firstX + RedPlayer.widthCount)
+						&& this.y >= RedPlayer.firstX) {
+					realspeed = gamespeed;
+					gamespeed = gamespeed - 5;
+					powerspeed = realspeed - 25;
+					ball.setColor(ballcolor);
+					ran1 = 0;
+				} else if (this.x == (BluePlayer.firstY - 1)
+						&& this.y <= (BluePlayer.firstX + BluePlayer.widthCount)
+						&& this.y >= BluePlayer.firstX) {
+					realspeed = gamespeed;
+					gamespeed = gamespeed - 5;
+					powerspeed = realspeed - 25;
+					ball.setColor(ballcolor);
+					ran1 = 1;
+				}
+				if (this.x == 1) {
+					alert("파랑 승리");
+					bluewin++;
+					document.getElementById("scoreb").value = " " + redwin
+							+ " : " + bluewin;
+					GameSet = false;
+					clearInterval(ballmov);
+					document.getElementById("c").style = "visibility: visible";
+				} else if (this.x == Field.WIDTH) {
+					alert("빨강 승리");
+					redwin++;
+					GameSet = false;
+					document.getElementById("scoreb").value = " " + redwin
+							+ " : " + bluewin;
+					clearInterval(ballmov);
+					document.getElementById("c").style = "visibility: visible";
+				}
+				movingStart();
+			} else {
+				return false;
+
+			}
+			this.DrawField();
+			this.EraseField();
+		} else {
+			return false;
+		}
+
+	}
+
+	function GStart() { //게임 시작 함수
+		gamecnt++;
+		ran1 = Math.floor(Math.random() * 2);
+		ran2 = Math.floor(Math.random() * 2);
+		document.getElementById("start").style = "visibility: hidden";
+		movingStart();
+
+	}
+
+	function movingStart() {
+		//ballmov = setInterval("ball.movingStart()", realspeed);
+		if (realspeed <= 0) {
+			realspeed = 5;
+		}
+		setTimeout("ball.movingStart()", realspeed);
+	}
+
+	document.onkeyup = function(e) { //키보드의 키코드를 받아 반응
+		if (window.event) {
+			e = window.event;
+		}
+		var keyCode = e.keyCode;
+		if (keyCode == 27) {
+			if (pause == false && GameSet == true) {
+				pause = true;
+				document.getElementById("pause").style = "visibility: visible";
+			} else if (pause == true && GameSet == true) {
+				pause = false;
+				document.getElementById("pause").style = "visibility: hidden";
+				movingStart();
+			} else {
+				return false;
+			}
+		} else if ((keyCode == 87) || (keyCode == 83) || (keyCode == 38)
+				|| (keyCode == 40) || (keyCode == 68) || (keyCode == 37)) {
+			if (BallStart == false && GameSet == false) {
+				StartButton();
+			}
+			if (GameSet == true && pause == false) {
+				if (keyCode == 87) {
+					RedPlayer.moveTop()
+				} else if (keyCode == 83) {
+					RedPlayer.moveDown()
+				} else if (keyCode == 38) {
+					BluePlayer.moveTop()
+				} else if (keyCode == 40) {
+					BluePlayer.moveDown();
+				} else if (keyCode == 68) { //빨강 파워샷
+					if (ball.x == RedPlayer.firstY + 1) {
+						realspeed = powerspeed;
+						ball.setColor("red");
+					} else {
+						return false;
+					}
+				} else if (keyCode == 37) { //파랑 파워샷
+					if (ball.x == Field.WIDTH - 1) {
+						realspeed = powerspeed;
+						ball.setColor("blue");
+					} else {
+						return false;
+					}
+				}
+			}
+		}
+	}
+
+	function StartButton() { //시작버튼을 누르면 반응
+		if (BallStart == false && GameSet == false) {
+			BallStart = true;
+			GameSet = true;
+			GStart();
+		} else {
+			return false;
+		}
+	}
+
+	function ReStart() { //재시작 버튼을 누르면 반응
+		if (BallStart == true && GameSet == false) {
+			document.getElementById("restart").style = "visibility: hidden";
+			document.getElementById("start").style = "visibility: visible";
+			RedPlayer.setPoint((Field.HEIGHT / 2 - 2), 1, "red");
+			BluePlayer.setPoint((Field.HEIGHT / 2 - 2), Field.WIDTH, "blue");
+			ball.setPoint((Field.WIDTH/2), (Field.HEIGHT/2), "black");
+			BallStart = false;
+			Field.DrawBlock(Field.WIDTH, Field.HEIGHT);
+			RedPlayer.DrawField();
+			BluePlayer.DrawField();
+			ball.DrawField();
+			gamespeed = speedreset;
+			realspeed = gamespeed;
+		} else {
+			return false;
+		}
+	}
+
+	function heightcng() { //게임 시작전 높이를 설정
+		document.getElementById("height").blur();
+		if (BallStart == false && gamecnt == 0) {
+			tempheight = document.getElementById("height").value;
+			Field.DrawBlock(Field.WIDTH, tempheight);
+			RedPlayer.setPoint((Field.HEIGHT / 2 - 2), 1, "red");
+			BluePlayer.setPoint((Field.HEIGHT / 2 - 2), Field.WIDTH, "blue");
+			ball.setPoint((Field.WIDTH/2), (Field.HEIGHT/2), "black");
+			RedPlayer.DrawField();
+			BluePlayer.DrawField();
+			ball.DrawField();
+		} else {
+			document.getElementById("height").value = tempheight;
+		}
+	}
+
+	function widthcng() { //게임 시작전 넓이를 설정
+		document.getElementById("width").blur();
+		if (BallStart == false && gamecnt == 0) {
+			tempwidth = document.getElementById("width").value;
+			Field.DrawBlock(tempwidth, Field.HEIGHT);
+			RedPlayer.DrawField();
+			BluePlayer.setPoint((Field.HEIGHT / 2 - 2), Field.WIDTH, "blue");
+			BluePlayer.DrawField();
+			ball.setPoint((Field.WIDTH/2), (Field.HEIGHT/2), "black");
+			ball.DrawField();
+		} else {
+			document.getElementById("width").value = tempwidth;
+		}
+	}
+
+	function speedcng() { //게임 시작전 공의 속도를 설정
+		document.getElementById("speed").blur();
+		if (BallStart == false && gamecnt == 0) {
+			gamespeed = document.getElementById("speed").value;
+			speedreset = gamespeed;
+			realspeed = gamespeed;
+			powerspeed = realspeed - 25;
+		} else {
+			document.getElementById("speed").value = gamespeed;
+		}
+	}
+
+	var RedPlayer = new Player(); //빨강 플레이어 객체 생성
+	var BluePlayer = new Player(); //파랑 플레이어 객체 생성
+	var ball = new Ball(); //공의 객체를 생성
+	RedPlayer.setPoint((Field.HEIGHT / 2 - 2), 1, "red");
+	BluePlayer.setPoint((Field.HEIGHT / 2 - 2), Field.WIDTH, "blue");
+	ball.setPoint((Field.WIDTH/2), (Field.HEIGHT/2), "black");
+	ballcolor = ball.color;
+</script>
+</head>
+<body>
+	<div id="contain">
+		<table id="tbrd" border="1">
+			<tr>
+				<td colspan="4">
+					<button id="start" onclick="StartButton()">시작</button>
+					<button id="restart" onclick="ReStart()">재시작</button>
+				</td>
+				<td colspan="2">조작 방법</td>
+			</tr>
+			<tr>
+				<td>높이 설정</td>
+				<td><select id="height" onchange="heightcng()">
+						<option value="10">10</option>
+						<option value="20" selected>20</option>
+						<option value="30">30</option>
+				</select></td>
+				<td>넓이 설정</td>
+				<td><select id="width" onchange="widthcng()">
+						<option value="30">30</option>
+						<option value="40">40</option>
+						<option value="50">50</option>
+				</select>
+				</td>
+				<td>빨강</td>
+				<td>위 : w 아래 : s 파워샷 : d</td>
+			</tr>
+			<tr>
+				<td colspan="2">속도 설정</td>
+				<td colspan="2">
+				<select id="speed" onchange="speedcng()">
+						<option value="50">빠름</option>
+						<option value="100" selected>보통</option>
+						<option value="125">느림</option>
+				</select>
+				</td>
+				<td>파랑</td>
+				<td>위 : ↑ 아래 : ↓ 파워샷 : ←</td>
+			</tr>
+			<tr>
+				<td>점수</td>
+				<td colspan="3"><input id="scoreb" type="text" value=" 0 : 0"
+					readonly></td>
+				<td colspan="2">일시정지 : esc</td>
+			</tr>
+		</table>
+		<div id="ftable" leftmargin="0" topmargin="0"></div>
+		<span id="pause">PAUSE</span>
+
+	</div>
+</body>
+<script>
+	Field.DrawBlock(40, 20);
+	RedPlayer.DrawField();
+	BluePlayer.DrawField();
+	ball.DrawField();
+</script>
+</html>
